@@ -49,8 +49,6 @@ user_data = load_data()
 
 @app.route("/download_user_data")
 def download_user_data():
-    global user_data
-    user_data = load_data()
     return send_file("user_data.json", as_attachment=True, attachment_filename="user_data.json")
     
 @app.route("/")
