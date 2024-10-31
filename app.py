@@ -12,18 +12,8 @@ app.secret_key = os.urandom(24)
 #socketio = SocketIO(app)  # Initialize SocketIO for real-time updates
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
 
-# Load credentials from text file
-def load_credentials(filename="credentials.txt"):
-    credentials = {}
-    with open(filename, "r") as file:
-        for line in file:
-            key, value = line.strip().split("=")
-            credentials[key] = value
-    return credentials
-
-credentials = load_credentials()
-CLIENT_ID = credentials.get("CLIENT_ID")
-CLIENT_SECRET = credentials.get("CLIENT_SECRET")
+CLIENT_ID = os.getenv("CLIENT_ID")
+CLIENT_SECRET = os.getenv("CLIENT_SECRET")
 REDIRECT_URI = "https://guardian-raffle-c0b2ceda6634.herokuapp.com/callback"
 
 
