@@ -23,7 +23,8 @@ def load_credentials(filename="credentials.txt"):
 credentials = load_credentials()
 CLIENT_ID = credentials.get("CLIENT_ID")
 CLIENT_SECRET = credentials.get("CLIENT_SECRET")
-REDIRECT_URI = "http://localhost:5000/callback"
+REDIRECT_URI = "https://guardian-raffle-c0b2ceda6634.herokuapp.com/callback"
+
 
 API_BASE_URL = "https://discord.com/api"
 AUTHORIZATION_BASE_URL = "https://discord.com/api/oauth2/authorize"
