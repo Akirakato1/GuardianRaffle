@@ -47,10 +47,15 @@ def save_data(data):
 
 user_data = load_data()
 
-@app.route("/download_user_data")
+@app.route("/download")
 def download_user_data():
-    return send_file("user_data.json", as_attachment=True, attachment_filename="user_data.json")
-    
+    print("Current working directory:", os.getcwd())
+    print("Files in the current directory:", os.listdir())
+    try:
+        return send_file("user_data.json", as_attachment=True, attachment_filename="user_data.json")
+    except Exception as e:
+        return f"An error occurred: {str(e)}", 500
+ 
 @app.route("/")
 def home():
     user = session.get('user')
