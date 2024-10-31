@@ -1,0 +1,267 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Guardian's Raffle</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        .grid { display: grid; grid-template-columns: repeat(100, 7px); }
+        .cell {
+            width: 7px;
+            height: 7px;
+            border: 1px solid #ddd;
+            cursor: pointer;
+        }
+        .cell.others { background-color: red; }
+        .cell.current-user { background-color: green; }
+        .tooltip {
+            position: absolute;
+            background-color: #333;
+            color: #fff;
+            padding: 2px 5px;
+            font-size: 10px;
+            border-radius: 3px;
+            visibility: hidden;
+            z-index: 1;
+            pointer-events: none;
+        }
+        .login-btn {
+            margin-bottom: 10px;
+            padding: 8px 16px;
+            font-size: 14px;
+            background-color: #7289da;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .login-btn:hover {
+            background-color: #5b6eae;
+        }
+        .counter {
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        .selected-cells {
+            font-size: 12px;
+            color: #666;
+        }
+        .countdown {
+            display: inline-block;
+            margin-left: 2em;
+            font-size: 16px;
+        }
+        .expired {
+            color: red;
+        }
+        .search-container {
+            margin-top: 15px;
+        }
+        .search-input {
+            padding: 8px;
+            font-size: 14px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .search-result {
+            margin-top: 10px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="welcome-message">
+        {% if not user %}
+            <p>Welcome to the annual Guardian's Raffle!</p>
+            <button class="login-btn" onclick="window.location.href='/login'">Login with Discord</button>
+        {% else %}
+            <p>Welcome to the annual Guardian's Raffle, {{ user['username'] }}!</p>
+        {% endif %}
+        &emsp;&emsp;
+        <span class="countdown" id="countdownTimer"></span>
+    </div>
+    <div class="search-container">
+        <input type="number" id="cellSearchInput" class="search-input" placeholder="Enter Value (1-10000)" min="1" max="10000">
+        <button onclick="searchCellOwner()">Search</button>
+        <div id="searchResult" class="search-result"></div>
+    </div>
+
+    <div class="counter">
+        {% if user %}
+            <p>Cells selected by you: <span id="userSelectedCount">{{ user_selected_count if user else 0 }}</span> / {{ max_selections }}</p>
+            <div class="selected-cells">Your selected cells: <span id="userSelectedCells">{{ current_user_cells | join(", ") }}</span></div>
+        {% endif %}
+        <p>Total cells selected across all users: <span id="totalSelectedCount">{{ total_selected_count }}</span></p>
+    </div>
+
+    <div id="tooltip" class="tooltip"></div>
+
+    <div class="grid">
+        {% for row in range(100) %}
+            {% for col in range(100) %}
+                <div 
+                    id="cell-{{ row }}-{{ col }}"
+                    class="cell"
+                    onmouseover="showTooltip(event, {{ row }}, {{ col }})"
+                    onmouseout="hideTooltip()"
+                    {% if user %} onclick="toggleCellSelection({{ row }}, {{ col }})" {% endif %}>
+                </div>
+            {% endfor %}
+        {% endfor %}
+    </div>
+
+    <script>
+        const socket = io();
+        const endDate = new Date("2023-12-31T23:59:59").getTime();
+        
+        let userCells = {{ current_user_cells | tojson if user else [] }};
+        let otherSelectedCells = {{ other_selected_cells | tojson }};
+        const isLoggedIn = {{ 'true' if user else 'false' }};
+
+        socket.on("update_cell", function(data) {
+            const { row, col, cell_selected, user_id, user_selected_count, total_selected_count } = data;
+            const cellElement = document.getElementById(`cell-${row}-${col}`);
+
+            if (cellElement) {
+                if (cell_selected) {
+                    if (user_id === "{{ user['id'] if user else '' }}") {
+                        cellElement.classList.add("current-user");
+                        userCells.push([row, col]);
+                        
+                    } else {
+                        cellElement.classList.add("others");
+                    }
+                } else {
+                    cellElement.classList.remove("current-user", "others");
+                    userCells = userCells.filter(cell => cell[0] !== row || cell[1] !== col);
+                }
+            }
+            
+            userCells.sort((a, b) => (a[0] - b[0]) || (a[1] - b[1]));
+            
+            document.getElementById("userSelectedCount").innerText = userCells.length;
+            document.getElementById("totalSelectedCount").innerText = total_selected_count;
+            updateUserSelectedCellsDisplay();
+        });
+
+        function showTooltip(event, row, col) {
+            const tooltip = document.getElementById('tooltip');
+            tooltip.style.visibility = 'visible';
+            tooltip.style.left = `${event.pageX + 10}px`;
+            tooltip.style.top = `${event.pageY + 10}px`;
+            tooltip.innerText = `Value: ${row * 100 + col + 1}`;
+        }
+
+        function hideTooltip() {
+            const tooltip = document.getElementById('tooltip');
+            tooltip.style.visibility = 'hidden';
+        }
+
+        function toggleCellSelection(row, col) {
+            if (!isLoggedIn) {
+                alert("You need to be logged in to select cells.");
+                return;
+            }
+
+            const cellElement = document.getElementById(`cell-${row}-${col}`);
+            if (cellElement.classList.contains("others")) {
+                alert("This cell is already selected by another user.");
+                return;
+            }
+
+            const cell = [row, col];
+            const isCurrentUserCell = cellElement.classList.contains("current-user");
+            const cellIndex = userCells.findIndex(c => c[0] === row && c[1] === col);
+
+            // Determine the action based on the current state
+            const isDeselecting = cellIndex !== -1;
+            socket.emit("select_cell", { row, col });
+        }
+
+        function updateUserSelectedCellsDisplay() {
+            const userSelectedCellsDisplay = document.getElementById("userSelectedCells");
+            userSelectedCellsDisplay.innerText = userCells
+                .map(cell => cell[0] * 100 + cell[1] + 1)  // Convert (row, col) to value
+                .join(", ");
+        }
+        
+        function updateCountdown() {
+            const now = new Date().getTime();
+            const timeRemaining = endDate - now;
+
+            // Calculate days, hours, minutes, and seconds
+            const days = Math.floor(timeRemaining / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((timeRemaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
+
+            // Display countdown or mark as expired
+            const countdownElement = document.getElementById("countdownTimer");
+            if (timeRemaining > 0) {
+                countdownElement.innerHTML = `Time left: ${days}d ${hours}h ${minutes}m`;
+            } else {
+                countdownElement.innerHTML = "The raffle has ended!";
+                countdownElement.classList.add("expired");
+
+                // Disable grid interaction
+                disableGrid();
+            }
+        }
+
+        // Disable grid interaction
+        function disableGrid() {
+            const cells = document.getElementsByClassName("cell");
+            for (let cell of cells) {
+                cell.onclick = null;  // Remove the click event
+                cell.style.cursor = "not-allowed";  // Change cursor to indicate no interaction
+            }
+            //alert("The raffle has ended! No further selections can be made.");
+        }
+
+        // Update countdown every second
+        setInterval(updateCountdown, 60000);
+
+        async function searchCellOwner() {
+            const cellNumber = document.getElementById('cellSearchInput').value;
+
+            if (cellNumber < 1 || cellNumber > 10000) {
+                document.getElementById("searchResult").innerText = "Please enter a valid cell number between 1 and 10,000.";
+                return;
+            }
+
+            try {
+                const response = await fetch(`/search_owner?cell_number=${cellNumber}`);
+                const data = await response.json();
+                
+                if (data.owner) {
+                    document.getElementById("searchResult").innerText = `Owner of cell ${cellNumber}: ${data.owner}`;
+                } else {
+                    document.getElementById("searchResult").innerText = `Cell ${cellNumber} is unselected.`;
+                }
+            } catch (error) {
+                document.getElementById("searchResult").innerText = "Error fetching cell owner. Please try again.";
+                console.error("Error:", error);
+            }
+        }
+        
+        window.onload = function() {
+            // Initialize colors
+            userCells.forEach(cell => {
+                const [row, col] = cell;
+                const cellElement = document.getElementById(`cell-${row}-${col}`);
+                if (cellElement) cellElement.classList.add("current-user");
+            });
+
+            otherSelectedCells.forEach(cell => {
+                const [row, col] = cell;
+                const cellElement = document.getElementById(`cell-${row}-${col}`);
+                if (cellElement) cellElement.classList.add("others");
+            });
+            
+            updateCountdown();
+            // Display the selected cells for the user
+            updateUserSelectedCellsDisplay();
+        };
+    </script>
+</body>
+</html>
