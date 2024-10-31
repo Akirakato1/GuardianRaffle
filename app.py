@@ -52,7 +52,7 @@ def download_user_data():
     print("Current working directory:", os.getcwd())
     print("Files in the current directory:", os.listdir())
     try:
-        return send_file("user_data.json", as_attachment=True, attachment_filename="user_data.json")
+        return send_file("user_data.json", as_attachment=True, download_name="user_data.json")
     except Exception as e:
         return f"An error occurred: {str(e)}", 500
  
