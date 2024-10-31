@@ -9,7 +9,8 @@ import tempfile
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
-socketio = SocketIO(app)  # Initialize SocketIO for real-time updates
+#socketio = SocketIO(app)  # Initialize SocketIO for real-time updates
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
 
 # Load credentials from text file
 def load_credentials(filename="credentials.txt"):
