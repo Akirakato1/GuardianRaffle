@@ -47,7 +47,7 @@ conn = r.connect(
 def load_data():
     # Fetch data from RethinkDB and return it as a dictionary with the original structure
     cursor = r.table('user_data').run(conn)
-    return {key: value for key, value in cursor.items()}  # Assuming RethinkDB stores each key-value as the original format
+    return {item['discord_id']: {"username": item["username"], "cells": item["cells"]} for item in cursor}
 
 def save_data(data):
     # Insert or update each top-level key as a document in RethinkDB
