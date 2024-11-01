@@ -113,7 +113,7 @@
 
     <script>
         const socket = io();
-        const endDate = new Date("2024-12-31T23:59:59").getTime();
+        const endDate = new Date("2024-11-02T23:59:59-05:00").getTime();
         
         let userCells = {{ current_user_cells | tojson if user else [] }};
         let otherSelectedCells = {{ other_selected_cells | tojson }};
