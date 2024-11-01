@@ -24,6 +24,15 @@ TOKEN_URL = "https://discord.com/api/oauth2/token"
 DATA_FILE = "user_data.json"
 MAX_SELECTIONS = 10  # Maximum cells a user can select
 
+r = RethinkDB()  # Add this line if using the legacy driver
+conn = r.connect(
+    host=os.getenv('RETHINKDB_HOST'),
+    port=int(os.getenv('RETHINKDB_PORT')),
+    db=os.getenv('RETHINKDB_NAME'),
+    user=os.getenv('RETHINKDB_USERNAME'),
+    password=os.getenv('RETHINKDB_PASSWORD')
+)
+
 def load_data():
     try:
         with open(DATA_FILE, "r") as file:
