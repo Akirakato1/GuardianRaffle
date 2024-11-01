@@ -142,7 +142,7 @@ def callback():
 
     user_id = user_info["id"]
     if user_id not in user_data:
-        insert_data({user_id: {"username": user_info["username"], "cells": []}
+        insert_data({user_id: {"username": user_info["username"], "cells": []}})
 
     return redirect(url_for("home"))
 
@@ -170,7 +170,7 @@ def handle_select_cell(data):
         return
 
     user_data[user_id]["cells"] = selected_cells
-    insert_data({user_id: {"username": user_data[user_id]["username"], "cells": user_data[user_id]["cells"]}
+    insert_data({user_id: {"username": user_data[user_id]["username"], "cells": user_data[user_id]["cells"]}})
 
     # Update the counters
     total_selected_count = sum(len(info["cells"]) for info in user_data.values())
