@@ -45,9 +45,12 @@ conn = r.connect(
 #        json.dump(data, file, indent=4)
 
 def load_data():
-    # Fetch data from RethinkDB and return it as a dictionary with the original structure
+    # Convert the cursor to a list to make it JSON-serializable
     cursor = r.table('user_data').run(conn)
-    return {item['discord_id']: {"username": item["username"], "cells": item["cells"]} for item in cursor}
+    data = list(cursor)  # Now `data` is a JSON-serializable Python list
+    output=jsonify(data)
+    print("OUTPUT", output)
+    return output  # This can be returned to the route or processed further
 
 def save_data(data):
     # Insert or update each top-level key as a document in RethinkDB
