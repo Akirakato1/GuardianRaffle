@@ -5,7 +5,7 @@ import requests
 import os
 from flask_socketio import SocketIO, emit
 import tempfile
-
+from rethinkdb import RethinkDB
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -36,6 +36,11 @@ def save_data(data):
         json.dump(data, file, indent=4)
 
 user_data = load_data()
+
+@app.route('/verify-import')
+def verify_import():
+    data = list(r.table('user_data').run(conn))
+    return jsonify(data)
 
 @app.route("/download")
 def download_user_data():
