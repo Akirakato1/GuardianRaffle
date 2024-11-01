@@ -59,7 +59,6 @@ def save_data(data):
 
 @app.route('/verify-import')
 def verify_import():
-    user_data = load_data()
     data = list(r.table('user_data').run(conn))
     return jsonify(data)
  
