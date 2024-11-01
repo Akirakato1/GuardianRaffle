@@ -54,6 +54,8 @@ def save_data(data):
     for discord_id, details in data.items():
         document = {discord_id: details}
         r.table('user_data').insert(document, conflict="replace").run(conn)
+        
+user_data=load_data()
 
 @app.route('/verify-import')
 def verify_import():
