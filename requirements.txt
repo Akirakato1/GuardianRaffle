@@ -3,3 +3,4 @@ requests
 Flask-SocketIO
 gunicorn
 eventlet
+rethinkdb
