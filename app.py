@@ -47,8 +47,7 @@ conn = r.connect(
 def load_data():
     # Convert the cursor to a list to make it JSON-serializable
     cursor = r.table('user_data').run(conn)
-    data = dict(cursor)  # Now `data` is a JSON-serializable Python list
-    print("OUTPUT", jsonify(data))
+    data = list(cursor)[0]  # Now `data` is a JSON-serializable Python list
     return data  # This can be returned to the route or processed further
 
 def save_data(data):
@@ -56,6 +55,9 @@ def save_data(data):
     for discord_id, details in data.items():
         document = {discord_id: details}
         r.table('user_data').insert(document, conflict="replace").run(conn)
+
+def insert_data(data):
+    r.table('user_data').insert(data, conflict="replace").run(conn)
 
 @app.route('/verify-import')
 def verify_import():
@@ -140,8 +142,7 @@ def callback():
 
     user_id = user_info["id"]
     if user_id not in user_data:
-        user_data[user_id] = {"username": user_info["username"], "cells": []}
-        save_data(user_data)
+        insert_data({user_id: {"username": user_info["username"], "cells": []}
 
     return redirect(url_for("home"))
 
@@ -169,7 +170,7 @@ def handle_select_cell(data):
         return
 
     user_data[user_id]["cells"] = selected_cells
-    save_data(user_data)
+    insert_data({user_id: {"username": user_data[user_id]["username"], "cells": user_data[user_id]["cells"]}
 
     # Update the counters
     total_selected_count = sum(len(info["cells"]) for info in user_data.values())
