@@ -33,38 +33,38 @@ conn = r.connect(
     password=os.getenv('RETHINKDB_PASSWORD')
 )
 
+#def load_data():
+#    try:
+#        with open(DATA_FILE, "r") as file:
+#            return json.load(file)
+#    except (FileNotFoundError, json.JSONDecodeError):
+#        return {}
+
+#def save_data(data):
+#    with open(DATA_FILE, "w") as file:
+#        json.dump(data, file, indent=4)
+
 def load_data():
-    try:
-        with open(DATA_FILE, "r") as file:
-            return json.load(file)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return {}
+    # Fetch data from RethinkDB and return it as a dictionary with the original structure
+    cursor = r.table('user_data').run(conn)
+    return {key: value for key, value in cursor.items()}  # Assuming RethinkDB stores each key-value as the original format
 
 def save_data(data):
-    with open(DATA_FILE, "w") as file:
-        json.dump(data, file, indent=4)
-
-user_data = load_data()
+    # Insert or update each top-level key as a document in RethinkDB
+    for discord_id, details in data.items():
+        document = {discord_id: details}
+        r.table('user_data').insert(document, conflict="replace").run(conn)
 
 @app.route('/verify-import')
 def verify_import():
+    user_data = load_data()
     data = list(r.table('user_data').run(conn))
     return jsonify(data)
-
-@app.route("/download")
-def download_user_data():
-    print("Current working directory:", os.getcwd())
-    print("Files in the current directory:", os.listdir())
-    try:
-        return send_file("user_data.json", as_attachment=True, download_name="user_data.json")
-    except Exception as e:
-        return f"An error occurred: {str(e)}", 500
  
 @app.route("/")
 def home():
     user = session.get('user')
     user_id = user["id"] if user else None
-    global user_data
     user_data = load_data()
     current_user_cells = []
     other_selected_cells = []
@@ -97,7 +97,6 @@ def login():
 
 @app.route("/search_owner")
 def search_owner():
-    global user_data
     user_data = load_data()
     
     cell_number = int(request.args.get("cell_number"))
@@ -136,7 +135,6 @@ def callback():
     ).json()
     session['user'] = user_info
 
-    global user_data
     user_data = load_data()
 
     user_id = user_info["id"]
@@ -149,6 +147,7 @@ def callback():
 # Handle cell selection through socketio to broadcast the update
 @socketio.on('select_cell')
 def handle_select_cell(data):
+    user_data = load_data()
     if 'user' not in session:
         emit('error', {"error": "User not logged in"})
         return
@@ -156,7 +155,7 @@ def handle_select_cell(data):
     user_id = session['user']['id']
     row, col = data['row'], data['col']
     selected_cells = user_data[user_id]["cells"]
-
+    
     # Toggle cell selection
     if [row, col] in selected_cells:
         selected_cells.remove([row, col])
@@ -168,7 +167,6 @@ def handle_select_cell(data):
         emit('error', {"error": "Selection limit reached"})
         return
 
-    # Update the JSON file
     user_data[user_id]["cells"] = selected_cells
     save_data(user_data)
 
