@@ -47,18 +47,15 @@ conn = r.connect(
 def load_data():
     # Convert the cursor to a list to make it JSON-serializable
     cursor = r.table('user_data').run(conn)
-    data = list(cursor)  # Now `data` is a JSON-serializable Python list
-    output=jsonify(data)
-    print("OUTPUT", output)
-    return output  # This can be returned to the route or processed further
+    data = dict(cursor)  # Now `data` is a JSON-serializable Python list
+    print("OUTPUT", jsonify(data))
+    return data  # This can be returned to the route or processed further
 
 def save_data(data):
     # Insert or update each top-level key as a document in RethinkDB
     for discord_id, details in data.items():
         document = {discord_id: details}
         r.table('user_data').insert(document, conflict="replace").run(conn)
-        
-user_data=load_data()
 
 @app.route('/verify-import')
 def verify_import():
