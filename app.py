@@ -68,17 +68,26 @@ def print_structure_types(data, parent_type=None):
         # This is a leaf node (not a list or dict)
         print(f"Leaf node type: {type(data).__name__}")
 
+
 def get_connection():
     global conn
-    if not conn.is_open():  # Check if the connection is still open
-        conn = r.connect(
-            host=os.getenv('RETHINKDB_HOST'),
-            port=int(os.getenv('RETHINKDB_PORT')),
-            db=os.getenv('RETHINKDB_NAME'),
-            user=os.getenv('RETHINKDB_USERNAME'),
-            password=os.getenv('RETHINKDB_PASSWORD')
-        )
-    return conn
+    try:
+        # Check if the connection is already open
+        if conn is None or not conn.is_open():
+            print("Reconnecting to RethinkDB...")
+            conn = r.connect(
+                host=os.getenv('RETHINKDB_HOST'),
+                port=int(os.getenv('RETHINKDB_PORT')),
+                db=os.getenv('RETHINKDB_NAME'),
+                user=os.getenv('RETHINKDB_USERNAME'),
+                password=os.getenv('RETHINKDB_PASSWORD')
+            )
+            print("Reconnected to RethinkDB")
+        return conn
+    except errors.ReqlDriverError as e:
+        print(f"Error reconnecting to RethinkDB: {e}")
+        time.sleep(5)  # Wait before retrying
+        return get_connection()
 
 def load_data():
     # Convert the cursor to a list to make it JSON-serializable
