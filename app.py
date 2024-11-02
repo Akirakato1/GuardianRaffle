@@ -121,8 +121,13 @@ def save_data(data):
 def verify_import():
     data = list(r.table('user_data').run(get_connection()))
     return jsonify(data)
- 
+
 @app.route("/")
+def loading_page():
+    reconnect()
+    return render_template('loading.html') 
+    
+@app.route("/home")
 def home():
     user = session.get('user')
     user_id = user["id"] if user else None
