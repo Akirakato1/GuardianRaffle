@@ -44,10 +44,35 @@ conn = r.connect(
 #    with open(DATA_FILE, "w") as file:
 #        json.dump(data, file, indent=4)
 
+def print_structure_types(data, parent_type=None):
+    """
+    Recursively prints the type of each object from the root to the leaves.
+    
+    Parameters:
+    data (any): The data structure to traverse (list, dictionary, or other types).
+    parent_type (str): The type of the parent object (used for recursive tracking).
+    """
+    if isinstance(data, dict):
+        if parent_type is None:
+            print(f"Root type: {type(data).__name__}")
+        for key, value in data.items():
+            print(f"Key '{key}' type: {type(value).__name__}")
+            print_structure_types(value, type(data).__name__)
+    elif isinstance(data, list):
+        if parent_type is None:
+            print(f"Root type: {type(data).__name__}")
+        for index, item in enumerate(data):
+            print(f"Index {index} type: {type(item).__name__}")
+            print_structure_types(item, type(data).__name__)
+    else:
+        # This is a leaf node (not a list or dict)
+        print(f"Leaf node type: {type(data).__name__}")
+        
 def load_data():
     # Convert the cursor to a list to make it JSON-serializable
     cursor = r.table('user_data').run(conn)
     data = list(cursor)[0]  # Now `data` is a JSON-serializable Python list
+    data.pop('id', None)
     return data  # This can be returned to the route or processed further
 
 def save_data(data):
@@ -71,9 +96,8 @@ def home():
     user_data = load_data()
     current_user_cells = []
     other_selected_cells = []
-    print(user_data)
+    print_structure_types(user_data)
     for uid, info in user_data.items():
-        print(info)
         for cell in info["cells"]:
             if user and uid == user_id:
                 current_user_cells.append(cell)
