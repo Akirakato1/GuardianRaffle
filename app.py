@@ -88,7 +88,20 @@ def get_connection():
         print(f"Error reconnecting to RethinkDB: {e}")
         time.sleep(5)  # Wait before retrying
         return get_connection()
-
+        
+def reconnect():
+    global conn
+    if conn is None or not conn.is_open():
+        print("Reconnecting to RethinkDB...")
+        conn = r.connect(
+            host=os.getenv('RETHINKDB_HOST'),
+            port=int(os.getenv('RETHINKDB_PORT')),
+            db=os.getenv('RETHINKDB_NAME'),
+            user=os.getenv('RETHINKDB_USERNAME'),
+            password=os.getenv('RETHINKDB_PASSWORD')
+        )
+        print("Reconnected to RethinkDB")
+    
 def load_data():
     # Convert the cursor to a list to make it JSON-serializable
     cursor = r.table('user_data').run(get_connection())
@@ -113,6 +126,8 @@ def verify_import():
 def home():
     user = session.get('user')
     user_id = user["id"] if user else None
+    reconnect()
+    time.sleep(5)
     user_data = load_data()
     current_user_cells = []
     other_selected_cells = []
