@@ -25,8 +25,13 @@ DATA_FILE = "user_data.json"
 MAX_SELECTIONS = 10  # Maximum cells a user can select
 
 r = RethinkDB()  # Add this line if using the legacy driver
-conn = None
-conn = get_connection()
+conn = r.connect(
+                host=os.getenv('RETHINKDB_HOST'),
+                port=int(os.getenv('RETHINKDB_PORT')),
+                db=os.getenv('RETHINKDB_NAME'),
+                user=os.getenv('RETHINKDB_USERNAME'),
+                password=os.getenv('RETHINKDB_PASSWORD')
+            )
 
 #def load_data():
 #    try:
@@ -38,26 +43,7 @@ conn = get_connection()
 #def save_data(data):
 #    with open(DATA_FILE, "w") as file:
 #        json.dump(data, file, indent=4)
-
-def get_connection():
-    global conn
-    try:
-        # Check if the connection is already open
-        if conn is None or not conn.is_open():
-            print("Reconnecting to RethinkDB...")
-            conn = r.connect(
-                host=os.getenv('RETHINKDB_HOST'),
-                port=int(os.getenv('RETHINKDB_PORT')),
-                db=os.getenv('RETHINKDB_NAME'),
-                user=os.getenv('RETHINKDB_USERNAME'),
-                password=os.getenv('RETHINKDB_PASSWORD')
-            )
-            print("Reconnected to RethinkDB")
-        return conn
-    except errors.ReqlDriverError as e:
-        print(f"Error reconnecting to RethinkDB: {e}")
-        return None
-        
+    
 def reconnect():
     global conn
     if conn is None or not conn.is_open():
@@ -88,7 +74,8 @@ def maintain_connection():
         
 def load_data():
     # Convert the cursor to a list to make it JSON-serializable
-    cursor = r.table('user_data').run(get_connection())
+    global conn
+    cursor = r.table('user_data').run(conn)
     data = list(cursor)[0]  # Now `data` is a JSON-serializable Python list
     global document_id
     document_id=data["id"]
@@ -97,13 +84,15 @@ def load_data():
 
 def save_data(data):
     global document_id
+    global conn
     # Insert or update each top-level key as a document in RethinkDB
-    r.table('user_data').get(document_id).update(data).run(get_connection())
+    r.table('user_data').get(document_id).update(data).run(conn)
 
 
 @app.route('/verify-data')
 def verify_import():
-    data = list(r.table('user_data').run(get_connection()))
+    global conn
+    data = list(r.table('user_data').run(conn))
     return jsonify(data)
 
 @app.route("/")
