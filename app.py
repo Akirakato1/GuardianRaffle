@@ -83,7 +83,7 @@ def save_data(data):
     r.table('user_data').get(document_id).update(data).run(conn)
 
 
-@app.route('/verify-import')
+@app.route('/verify-data')
 def verify_import():
     data = list(r.table('user_data').run(conn))
     return jsonify(data)
