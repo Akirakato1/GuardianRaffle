@@ -27,6 +27,7 @@ DATA_FILE = "user_data.json"
 MAX_SELECTIONS = 10  # Maximum cells a user can select
 
 r = RethinkDB()  # Add this line if using the legacy driver
+conn = None
 conn = get_connection()
 threading.Thread(target=maintain_connection, daemon=True).start()
 
