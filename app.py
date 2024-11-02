@@ -127,7 +127,6 @@ def home():
     user = session.get('user')
     user_id = user["id"] if user else None
     reconnect()
-    time.sleep(5)
     user_data = load_data()
     current_user_cells = []
     other_selected_cells = []
