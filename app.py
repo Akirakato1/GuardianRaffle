@@ -6,6 +6,8 @@ import os
 from flask_socketio import SocketIO, emit
 import tempfile
 from rethinkdb import RethinkDB
+import threading
+import time
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -64,14 +66,16 @@ def maintain_connection():
         try:
             if conn is None or not conn.is_open():
                 print("Reconnecting to RethinkDB...")
-                conn = get_connection()
+                reconnect()
             else:
                 # Optional: Ping the server to keep the connection active
                 r.now().run(conn)
         except Exception as e:
             print("Error maintaining connection:", e)
         time.sleep(60)  # Wait for 1 minute before checking again
-        
+
+threading.Thread(target=maintain_connection, daemon=True).start()
+
 def load_data():
     # Convert the cursor to a list to make it JSON-serializable
     global conn
