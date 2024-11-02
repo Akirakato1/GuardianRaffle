@@ -25,13 +25,8 @@ DATA_FILE = "user_data.json"
 MAX_SELECTIONS = 10  # Maximum cells a user can select
 
 r = RethinkDB()  # Add this line if using the legacy driver
-conn = r.connect(
-    host=os.getenv('RETHINKDB_HOST'),
-    port=int(os.getenv('RETHINKDB_PORT')),
-    db=os.getenv('RETHINKDB_NAME'),
-    user=os.getenv('RETHINKDB_USERNAME'),
-    password=os.getenv('RETHINKDB_PASSWORD')
-)
+conn = get_connection()
+threading.Thread(target=maintain_connection, daemon=True).start()
 
 #def load_data():
 #    try:
@@ -43,31 +38,6 @@ conn = r.connect(
 #def save_data(data):
 #    with open(DATA_FILE, "w") as file:
 #        json.dump(data, file, indent=4)
-
-def print_structure_types(data, parent_type=None):
-    """
-    Recursively prints the type of each object from the root to the leaves.
-    
-    Parameters:
-    data (any): The data structure to traverse (list, dictionary, or other types).
-    parent_type (str): The type of the parent object (used for recursive tracking).
-    """
-    if isinstance(data, dict):
-        if parent_type is None:
-            print(f"Root type: {type(data).__name__}")
-        for key, value in data.items():
-            print(f"Key '{key}' type: {type(value).__name__}")
-            print_structure_types(value, type(data).__name__)
-    elif isinstance(data, list):
-        if parent_type is None:
-            print(f"Root type: {type(data).__name__}")
-        for index, item in enumerate(data):
-            print(f"Index {index} type: {type(item).__name__}")
-            print_structure_types(item, type(data).__name__)
-    else:
-        # This is a leaf node (not a list or dict)
-        print(f"Leaf node type: {type(data).__name__}")
-
 
 def get_connection():
     global conn
@@ -86,8 +56,7 @@ def get_connection():
         return conn
     except errors.ReqlDriverError as e:
         print(f"Error reconnecting to RethinkDB: {e}")
-        time.sleep(5)  # Wait before retrying
-        return get_connection()
+        return None
         
 def reconnect():
     global conn
@@ -101,7 +70,22 @@ def reconnect():
             password=os.getenv('RETHINKDB_PASSWORD')
         )
         print("Reconnected to RethinkDB")
-    
+
+# Function to maintain the connection
+def maintain_connection():
+    global conn
+    while True:
+        try:
+            if conn is None or not conn.is_open():
+                print("Reconnecting to RethinkDB...")
+                conn = get_connection()
+            else:
+                # Optional: Ping the server to keep the connection active
+                r.now().run(conn)
+        except Exception as e:
+            print("Error maintaining connection:", e)
+        time.sleep(60)  # Wait for 1 minute before checking again
+        
 def load_data():
     # Convert the cursor to a list to make it JSON-serializable
     cursor = r.table('user_data').run(get_connection())
@@ -131,7 +115,6 @@ def loading_page():
 def home():
     user = session.get('user')
     user_id = user["id"] if user else None
-    reconnect()
     user_data = load_data()
     current_user_cells = []
     other_selected_cells = []
