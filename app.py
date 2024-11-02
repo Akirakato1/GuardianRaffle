@@ -96,7 +96,6 @@ def home():
     user_data = load_data()
     current_user_cells = []
     other_selected_cells = []
-    print_structure_types(user_data)
     for uid, info in user_data.items():
         for cell in info["cells"]:
             if user and uid == user_id:
