@@ -6,8 +6,6 @@ import os
 from flask_socketio import SocketIO, emit
 import tempfile
 from rethinkdb import RethinkDB
-import threading 
-import time
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -29,7 +27,6 @@ MAX_SELECTIONS = 10  # Maximum cells a user can select
 r = RethinkDB()  # Add this line if using the legacy driver
 conn = None
 conn = get_connection()
-threading.Thread(target=maintain_connection, daemon=True).start()
 
 #def load_data():
 #    try:
