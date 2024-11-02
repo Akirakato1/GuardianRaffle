@@ -67,10 +67,22 @@ def print_structure_types(data, parent_type=None):
     else:
         # This is a leaf node (not a list or dict)
         print(f"Leaf node type: {type(data).__name__}")
-        
+
+def get_connection():
+    global conn
+    if not conn.is_open():  # Check if the connection is still open
+        conn = r.connect(
+            host=os.getenv('RETHINKDB_HOST'),
+            port=int(os.getenv('RETHINKDB_PORT')),
+            db=os.getenv('RETHINKDB_NAME'),
+            user=os.getenv('RETHINKDB_USERNAME'),
+            password=os.getenv('RETHINKDB_PASSWORD')
+        )
+    return conn
+
 def load_data():
     # Convert the cursor to a list to make it JSON-serializable
-    cursor = r.table('user_data').run(conn)
+    cursor = r.table('user_data').run(get_connection())
     data = list(cursor)[0]  # Now `data` is a JSON-serializable Python list
     global document_id
     document_id=data["id"]
@@ -80,12 +92,12 @@ def load_data():
 def save_data(data):
     global document_id
     # Insert or update each top-level key as a document in RethinkDB
-    r.table('user_data').get(document_id).update(data).run(conn)
+    r.table('user_data').get(document_id).update(data).run(get_connection())
 
 
 @app.route('/verify-data')
 def verify_import():
-    data = list(r.table('user_data').run(conn))
+    data = list(r.table('user_data').run(get_connection()))
     return jsonify(data)
  
 @app.route("/")
