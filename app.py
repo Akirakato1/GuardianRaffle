@@ -71,8 +71,9 @@ def home():
     user_data = load_data()
     current_user_cells = []
     other_selected_cells = []
-
+    print(user_data)
     for uid, info in user_data.items():
+        print(info)
         for cell in info["cells"]:
             if user and uid == user_id:
                 current_user_cells.append(cell)
