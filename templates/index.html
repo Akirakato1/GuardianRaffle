@@ -112,6 +112,12 @@
     </div>
 
     <script>
+
+        if (performance.navigation.type === 1) {
+            // Redirect to the loading page if the page is refreshed
+            window.location.href = "/";
+        }
+        
         const socket = io();
         const endDate = new Date("2024-11-02T23:59:59-05:00").getTime();
         
